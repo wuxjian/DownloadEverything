@@ -58,6 +58,8 @@ func NewRouter(db *sql.DB, cfg *config.Config, mgr *downloader.Manager, webFS em
 		api.GET("/tasks/:id", h.getTask)
 		api.POST("/tasks/:id/pause", h.pauseTask)
 		api.POST("/tasks/:id/resume", h.resumeTask)
+		api.POST("/tasks/:id/retry", h.retryTask)
+		api.DELETE("/tasks", h.clearTasks)
 		api.DELETE("/tasks/:id", h.deleteTask)
 		api.GET("/tasks/events", h.taskEvents)
 		api.POST("/open-dir", h.openDownloadDir)

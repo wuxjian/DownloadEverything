@@ -177,6 +177,22 @@ func (m *Manager) ResumeTask(id string) error {
 	return nil
 }
 
+// RetryTask 重试失败的任务
+func (m *Manager) RetryTask(id string) error {
+	task, err := m.store.GetTask(id)
+	if err != nil {
+		return err
+	}
+	if task.Status != "failed" {
+		return fmt.Errorf("只有失败的任务可以重试: %s", task.Status)
+	}
+	task.Status = "pending"
+	// 重置下载进度
+	m.store.UpdateProgress(id, 0, 0, 0, "pending")
+	go m.startDownload(task)
+	return nil
+}
+
 // CancelTask 取消任务
 func (m *Manager) CancelTask(id string) error {
 	m.mu.RLock()
@@ -197,6 +213,11 @@ func (m *Manager) DeleteTask(id string) error {
 		cancel()
 	}
 	return m.store.DeleteTask(id)
+}
+
+// DeleteAllTasks 清空所有已结束的历史任务
+func (m *Manager) DeleteAllTasks() error {
+	return m.store.ClearTasks()
 }
 
 // GetTask 获取任务详情

@@ -157,6 +157,10 @@ function renderTask(t) {
         actions += `<button class="btn btn-ghost btn-icon" onclick="pauseTask('${t.id}')" title="暂停">${icons.pause}</button>`;
     } else if (t.status === 'paused') {
         actions += `<button class="btn btn-ghost btn-icon" onclick="resumeTask('${t.id}')" title="恢复">${icons.play}</button>`;
+    } else if (t.status === 'failed') {
+        actions += `<button class="btn btn-ghost btn-icon" onclick="retryTask('${t.id}')" title="重试">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
+        </button>`;
     }
     actions += `<button class="btn btn-danger btn-icon" onclick="deleteTask('${t.id}')" title="删除">${icons.trash}</button>`;
 
@@ -220,6 +224,19 @@ async function pauseTask(id) {
 async function resumeTask(id) {
     await api(`/api/tasks/${id}/resume`, 'POST');
     toast('任务已恢复', 'success');
+    loadTasks();
+}
+
+async function retryTask(id) {
+    await api(`/api/tasks/${id}/retry`, 'POST');
+    toast('任务已加入重试', 'success');
+    loadTasks();
+}
+
+async function clearAllTasks() {
+    if (!confirm('确定清空所有已完成/失败/暂停的历史任务？')) return;
+    await api('/api/tasks', 'DELETE');
+    toast('历史任务已清空', 'success');
     loadTasks();
 }
 

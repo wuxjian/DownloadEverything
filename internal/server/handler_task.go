@@ -79,10 +79,29 @@ func (h *AppHandler) resumeTask(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"ok": true})
 }
 
+// retryTask 重试失败的任务
+func (h *AppHandler) retryTask(c *gin.Context) {
+	id := c.Param("id")
+	if err := h.Manager.RetryTask(id); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"ok": true})
+}
+
 // deleteTask 删除任务
 func (h *AppHandler) deleteTask(c *gin.Context) {
 	id := c.Param("id")
 	if err := h.Manager.DeleteTask(id); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"ok": true})
+}
+
+// clearTasks 清空所有已结束的历史任务
+func (h *AppHandler) clearTasks(c *gin.Context) {
+	if err := h.Manager.DeleteAllTasks(); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}

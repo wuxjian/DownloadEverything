@@ -131,6 +131,12 @@ func (s *TaskStore) DeleteTask(id string) error {
 	return err
 }
 
+// ClearTasks 清空所有已结束（非 downloading/pending）的任务
+func (s *TaskStore) ClearTasks() error {
+	_, err := s.DB.Exec("DELETE FROM tasks WHERE status NOT IN ('downloading', 'pending')")
+	return err
+}
+
 // CountByStatus 统计各状态任务数
 func (s *TaskStore) CountByStatus() (map[string]int, error) {
 	rows, err := s.DB.Query("SELECT status, COUNT(*) FROM tasks GROUP BY status")
