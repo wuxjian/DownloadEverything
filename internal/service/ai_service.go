@@ -21,7 +21,8 @@ type AIService struct {
 func NewAIService(cfg *config.Config, db *sql.DB) *AIService {
 	aiClient := ai.NewClient(cfg.AIEndpoint, cfg.AIModel, cfg.AIKey)
 	tavilyClient := ai.NewTavilyClient(cfg.TavilyKey)
-	pipeline := ai.NewSearchPipeline(aiClient, tavilyClient)
+	serperClient := ai.NewSerperClient(cfg.SerperKey)
+	pipeline := ai.NewSearchPipeline(aiClient, tavilyClient, serperClient)
 
 	return &AIService{
 		cfg:       cfg,
@@ -34,7 +35,8 @@ func NewAIService(cfg *config.Config, db *sql.DB) *AIService {
 func (s *AIService) RefreshClient(cfg *config.Config) {
 	aiClient := ai.NewClient(cfg.AIEndpoint, cfg.AIModel, cfg.AIKey)
 	tavilyClient := ai.NewTavilyClient(cfg.TavilyKey)
-	s.pipeline = ai.NewSearchPipeline(aiClient, tavilyClient)
+	serperClient := ai.NewSerperClient(cfg.SerperKey)
+	s.pipeline = ai.NewSearchPipeline(aiClient, tavilyClient, serperClient)
 	s.cfg = cfg
 }
 

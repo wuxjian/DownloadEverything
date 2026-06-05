@@ -21,8 +21,9 @@ type Config struct {
 	AIModel    string `json:"ai_model"`
 	AIKey      string `json:"ai_key"`
 
-	// Tavily 搜索
+	// 搜索引擎
 	TavilyKey string `json:"tavily_key"`
+	SerperKey string `json:"serper_key"`
 
 	// 下载参数
 	MaxConcurrent  int `json:"max_concurrent"`   // 最大并发下载数
@@ -80,6 +81,7 @@ const (
 	keyAIModel        = "ai_model"
 	keyAIKey          = "ai_key"
 	keyTavilyKey      = "tavily_key"
+	keySerperKey      = "serper_key"
 	keyMaxConcurrent  = "max_concurrent"
 	keyThreadsPerFile = "threads_per_file"
 	keyProxyURL       = "proxy_url"
@@ -123,6 +125,9 @@ func LoadFromDB(store *database.SettingsStore) (*Config, error) {
 	if v, ok := all[keyTavilyKey]; ok {
 		cfg.TavilyKey = v
 	}
+	if v, ok := all[keySerperKey]; ok {
+		cfg.SerperKey = v
+	}
 	if v, ok := all[keyMaxConcurrent]; ok {
 		if n, err := strconv.Atoi(v); err == nil {
 			cfg.MaxConcurrent = n
@@ -159,6 +164,7 @@ func SaveToDB(store *database.SettingsStore, cfg *Config) error {
 		keyAIModel:        cfg.AIModel,
 		keyAIKey:          cfg.AIKey,
 		keyTavilyKey:      cfg.TavilyKey,
+		keySerperKey:      cfg.SerperKey,
 		keyMaxConcurrent:  strconv.Itoa(cfg.MaxConcurrent),
 		keyThreadsPerFile: strconv.Itoa(cfg.ThreadsPerFile),
 		keyProxyURL:       cfg.ProxyURL,

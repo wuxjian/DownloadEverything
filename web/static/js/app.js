@@ -417,7 +417,7 @@ function addErrorStep(container, msg) {
     </div>`;
 }
 
-const stepNames = { 1: 'Tavily 搜索', 2: 'AI 筛选网页', 3: '抓取网页内容', 4: 'AI 提取链接' };
+const stepNames = { 1: '搜索引擎搜索', 2: 'AI 筛选网页', 3: '抓取网页内容', 4: 'AI 提取链接' };
 const stepIcons = {
     1: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>',
     2: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg>',
@@ -604,6 +604,7 @@ async function saveSettings() {
         ai_model: document.getElementById('set-ai-model').value,
         ai_key: document.getElementById('set-ai-key').value,
         tavily_key: document.getElementById('set-tavily-key').value,
+        serper_key: document.getElementById('set-serper-key').value,
         max_concurrent: parseInt(document.getElementById('set-max-concurrent').value),
         threads_per_file: parseInt(document.getElementById('set-threads-per-file').value),
         proxy_url: document.getElementById('set-proxy-url').value.trim(),

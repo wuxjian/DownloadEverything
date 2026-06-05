@@ -13,13 +13,15 @@ import (
 type SearchPipeline struct {
 	aiClient     *Client
 	tavilyClient *TavilyClient
+	serperClient *SerperClient
 }
 
 // NewSearchPipeline 创建搜索流水线
-func NewSearchPipeline(aiClient *Client, tavilyClient *TavilyClient) *SearchPipeline {
+func NewSearchPipeline(aiClient *Client, tavilyClient *TavilyClient, serperClient *SerperClient) *SearchPipeline {
 	return &SearchPipeline{
 		aiClient:     aiClient,
 		tavilyClient: tavilyClient,
+		serperClient: serperClient,
 	}
 }
 
@@ -42,23 +44,94 @@ type DownloadLink struct {
 }
 
 // Run 执行完整搜索流水线
-// Step1: Tavily搜索 -> Step2: AI筛选 -> Step3: HTTP抓取 -> Step4: AI提取链接
+// Step1: 搜索引擎搜索 -> Step2: AI筛选 -> Step3: HTTP抓取 -> Step4: AI提取链接
 func (p *SearchPipeline) Run(ctx context.Context, query string, cb StepCallback) (*PipelineResult, error) {
 	totalSteps := 4
 
-	// === Step1: Tavily搜索 ===
+	// === Step1: 搜索引擎搜索 ===
 	if cb != nil {
 		cb(1, totalSteps, "正在搜索: "+query, nil)
 	}
-	searchResp, err := p.tavilyClient.Search(query, 20)
-	if err != nil {
-		return nil, fmt.Errorf("Step1搜索失败: %w", err)
-	}
-	if cb != nil {
-		cb(1, totalSteps, fmt.Sprintf("搜索完成，找到 %d 个结果", len(searchResp.Results)), searchResp.Results)
+
+	// 检查可用的搜索引擎
+	useTavily := p.tavilyClient != nil && p.tavilyClient.APIKey != ""
+	useSerper := p.serperClient != nil && p.serperClient.APIKey != ""
+
+	if !useTavily && !useSerper {
+		return nil, fmt.Errorf("未配置任何搜索引擎，请在设置中配置 Tavily 或 Serper API Key")
 	}
 
-	if len(searchResp.Results) == 0 {
+	// 执行搜索
+	var allResults []SearchResult
+	var searchMsg string
+
+	if useTavily && useSerper {
+		// 两个都配置，并发执行
+		type searchResult struct {
+			results []SearchResult
+			err     error
+			source  string
+		}
+
+		ch := make(chan searchResult, 2)
+
+		go func() {
+			resp, err := p.tavilyClient.Search(query, 20)
+			if err != nil {
+				ch <- searchResult{nil, err, "Tavily"}
+			} else {
+				ch <- searchResult{resp.Results, nil, "Tavily"}
+			}
+		}()
+
+		go func() {
+			resp, err := p.serperClient.Search(query, 20)
+			if err != nil {
+				ch <- searchResult{nil, err, "Serper"}
+			} else {
+				ch <- searchResult{resp.Results, nil, "Serper"}
+			}
+		}()
+
+		// 收集结果
+		urlSet := make(map[string]bool)
+		for i := 0; i < 2; i++ {
+			res := <-ch
+			if res.err != nil {
+				// 一个失败不影响另一个
+				continue
+			}
+			for _, r := range res.results {
+				if !urlSet[r.URL] {
+					urlSet[r.URL] = true
+					allResults = append(allResults, r)
+				}
+			}
+		}
+		searchMsg = fmt.Sprintf("合并搜索完成，找到 %d 个结果", len(allResults))
+	} else if useTavily {
+		// 只用 Tavily
+		resp, err := p.tavilyClient.Search(query, 20)
+		if err != nil {
+			return nil, fmt.Errorf("Step1 Tavily搜索失败: %w", err)
+		}
+		allResults = resp.Results
+		searchMsg = fmt.Sprintf("Tavily 搜索完成，找到 %d 个结果", len(allResults))
+	} else {
+		// 只用 Serper
+		resp, err := p.serperClient.Search(query, 20)
+		if err != nil {
+			return nil, fmt.Errorf("Step1 Serper搜索失败: %w", err)
+		}
+		allResults = resp.Results
+		searchMsg = fmt.Sprintf("Serper 搜索完成，找到 %d 个结果", len(allResults))
+	}
+
+	if cb != nil {
+		cb(1, totalSteps, searchMsg, allResults)
+	}
+
+	if len(allResults) == 0 {
 		return &PipelineResult{Query: query}, nil
 	}
 
@@ -66,7 +139,7 @@ func (p *SearchPipeline) Run(ctx context.Context, query string, cb StepCallback)
 	if cb != nil {
 		cb(2, totalSteps, "AI正在分析搜索结果，筛选最相关网页...", nil)
 	}
-	selectedURLs, err := p.filterResults(ctx, searchResp.Results, query)
+	selectedURLs, err := p.filterResults(ctx, allResults, query)
 	if err != nil {
 		return nil, fmt.Errorf("Step2 AI筛选失败: %w", err)
 	}

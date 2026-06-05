@@ -52,6 +52,9 @@ func (h *AppHandler) updateSettings(c *gin.Context) {
 	if key, ok := safe["tavily_key"].(string); ok && len(key) > 8 {
 		safe["tavily_key"] = key[:4] + "****" + key[len(key)-4:]
 	}
+	if key, ok := safe["serper_key"].(string); ok && len(key) > 8 {
+		safe["serper_key"] = key[:4] + "****" + key[len(key)-4:]
+	}
 
 	c.JSON(http.StatusOK, gin.H{"ok": true, "config": safe})
 }
