@@ -173,7 +173,7 @@ func (p *SearchPipeline) Run(ctx context.Context, query string, cb StepCallback)
 
 	// === Step4: AI提取下载链接 ===
 	if cb != nil {
-		cb(4, totalSteps, "AI正在分析网页内容，提取下载链接...", nil)
+		cb(4, totalSteps, "正在提取下载链接...", nil)
 	}
 	links, err := p.extractLinks(ctx, pages, query)
 	if err != nil {
@@ -181,25 +181,6 @@ func (p *SearchPipeline) Run(ctx context.Context, query string, cb StepCallback)
 	}
 	if cb != nil {
 		cb(4, totalSteps, fmt.Sprintf("找到 %d 个下载链接", len(links)), links)
-	}
-
-	// 补充：用 ExtractDirectLinks 直接从 HTML 中匹配文件扩展名链接，补全 AI 可能遗漏的
-	linkSet := make(map[string]bool)
-	for _, l := range links {
-		linkSet[l.URL] = true
-	}
-	var extraLinks []DownloadLink
-	for url, content := range pages {
-		directLinks := ExtractDirectLinks(content, url)
-		for _, dl := range directLinks {
-			if !linkSet[dl.URL] {
-				linkSet[dl.URL] = true
-				extraLinks = append(extraLinks, dl)
-			}
-		}
-	}
-	if len(extraLinks) > 0 {
-		links = append(links, extraLinks...)
 	}
 
 	return &PipelineResult{
@@ -238,45 +219,71 @@ func (p *SearchPipeline) filterResults(ctx context.Context, results []SearchResu
 	return urls, nil
 }
 
-// extractLinks AI从网页内容中提取下载链接
+// extractLinks 先硬提取（文件扩展名/网盘/关键词匹配）+ 再让AI从链接列表中判断
 func (p *SearchPipeline) extractLinks(ctx context.Context, pages map[string]string, query string) ([]DownloadLink, error) {
 	var allLinks []DownloadLink
+	linkSeen := make(map[string]bool)
 
 	for url, content := range pages {
-		// 限制内容长度，避免超出AI token限制
-		if len(content) > 15000 {
-			content = content[:15000]
+		// Step A: 先硬提取（不经过AI），按文件扩展名、网盘域名、关键词匹配
+		directLinks := ExtractDirectLinks(content, url)
+		for _, l := range directLinks {
+			if !linkSeen[l.URL] {
+				linkSeen[l.URL] = true
+				allLinks = append(allLinks, l)
+			}
 		}
 
-		messages := []Message{
-			{
-				Role: "system",
-				Content: `你是一个资源下载链接提取助手。请从给定的网页内容中提取所有可能的下载链接。
-提取规则：
-1. 寻找直接的下载链接（.exe, .zip, .rar, .7z, .mp4, .mkv, .pdf, .mp3, .txt, .epub, .mobi 等文件链接）
-2. 特别注意文本类资源：.txt 小说、电子书（.epub, .mobi）、文档（.pdf, .doc, .docx）等
-3. 寻找下载按钮或下载区域的链接
-4. 寻找网盘分享链接（如百度网盘、阿里云盘、Google Drive等）
-5. 寻找磁力链接（magnet:?开头的链接）
-
-返回JSON数组，格式如：
-[{"name": "文件名", "url": "下载链接", "size": "文件大小(如有)", "type": "文件类型"}]
-如果没有找到下载链接，返回空数组 []。`,
-			},
-			{
-				Role:    "user",
-				Content: fmt.Sprintf("用户搜索: %s\n网页URL: %s\n\n网页内容:\n%s", query, url, content),
-			},
-		}
-
-		var links []DownloadLink
-		if err := p.aiClient.ChatJSON(messages, &links); err != nil {
+		// Step B: 提取页面上所有链接，让AI判断哪些是下载链接
+		linksText := ExtractAllLinks(content, url)
+		if linksText == "" {
 			continue
 		}
-		allLinks = append(allLinks, links...)
+
+		aiLinks, err := p.filterLinksByAI(ctx, linksText, query, url)
+		if err != nil {
+			continue
+		}
+		for _, l := range aiLinks {
+			if !linkSeen[l.URL] {
+				linkSeen[l.URL] = true
+				allLinks = append(allLinks, l)
+			}
+		}
 	}
 
 	return allLinks, nil
+}
+
+// filterLinksByAI 让AI从链接列表中判断哪些是下载链接
+func (p *SearchPipeline) filterLinksByAI(ctx context.Context, linksText string, query string, pageURL string) ([]DownloadLink, error) {
+	messages := []Message{
+		{
+			Role: "system",
+			Content: `你是一个下载链接识别助手。下面是一个网页中的所有链接列表，请从中选出所有可下载文件的链接。
+
+可下载文件包括：
+1. 直接文件链接：以 .txt, .zip, .rar, .7z, .epub, .mobi, .pdf, .exe, .mp4, .mkv, .mp3 等文件扩展名结尾的URL
+2. 特别注意文本类资源：.txt 小说、电子书（.epub, .mobi）的下载链接
+3. 网盘分享链接：百度网盘、阿里云盘、Google Drive 等
+4. 磁力链接：magnet:? 开头的链接
+5. 链接文本或URL中包含"下载"、"txt"等关键词的链接
+
+只返回JSON数组，格式如：
+[{"name": "文件名", "url": "下载链接", "type": "文件类型"}]
+如果没有可下载的链接，返回空数组 []。`,
+		},
+		{
+			Role:    "user",
+			Content: fmt.Sprintf("用户搜索: %s\n\n%s", query, linksText),
+		},
+	}
+
+	var links []DownloadLink
+	if err := p.aiClient.ChatJSON(messages, &links); err != nil {
+		return nil, err
+	}
+	return links, nil
 }
 
 // fetchPage 抓取网页内容
