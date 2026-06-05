@@ -3,7 +3,9 @@ package service
 import (
 	"download-everything/internal/downloader"
 	"net/http"
+	"net/url"
 	"path"
+	"strings"
 )
 
 // DownloadService 下载业务逻辑
@@ -29,12 +31,21 @@ type CreateTaskReq struct {
 func (s *DownloadService) AddTask(req *CreateTaskReq) (*downloader.Progress, error) {
 	name := req.Name
 	if name == "" {
-		// 从URL提取文件名
-		name = path.Base(req.URL)
+		// 从URL提取文件名，去掉查询参数
+		if parsedURL, err := url.Parse(req.URL); err == nil {
+			name = path.Base(parsedURL.Path)
+		} else {
+			name = path.Base(req.URL)
+		}
 		if name == "" || name == "." || name == "/" {
 			name = "download"
 		}
 	}
+	// 过滤文件名中的非法字符（Windows不允许: \ / : * ? " < > |）
+	name = strings.NewReplacer(
+		"\\", "_", "/", "_", ":", "_", "*", "_",
+		"?", "_", "\"", "_", "<", "_", ">", "_", "|", "_",
+	).Replace(name)
 	source := req.Source
 	if source == "" {
 		source = "manual"

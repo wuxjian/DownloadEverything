@@ -60,7 +60,10 @@ document.addEventListener('DOMContentLoaded', () => {
     btn('btn-search')?.addEventListener('click', startSearch);
     btn('btn-parse')?.addEventListener('click', parseURL);
     btn('btn-save-settings')?.addEventListener('click', saveSettings);
-    if (document.getElementById('task-list')) listenProgress();
+    if (document.getElementById('task-list')) {
+        listenProgress();
+        loadTasks();
+    }
     // 恢复搜索页状态
     if (document.getElementById('progress-steps')) restoreSearchState();
 });
@@ -190,9 +193,19 @@ async function loadTasks() {
                 <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
                 <p>暂无下载任务，添加链接开始下载</p>
             </div>`;
-            return;
+        } else {
+            list.innerHTML = data.tasks.map(renderTask).join('');
         }
-        list.innerHTML = data.tasks.map(renderTask).join('');
+        // 更新统计卡片
+        const counts = { downloading: 0, done: 0, paused: 0, failed: 0 };
+        if (data.tasks) {
+            data.tasks.forEach(t => { if (counts[t.status] !== undefined) counts[t.status]++; });
+        }
+        const id = (el) => document.getElementById(el);
+        id('count-downloading').textContent = counts.downloading;
+        id('count-done').textContent = counts.done;
+        id('count-paused').textContent = counts.paused;
+        id('count-failed').textContent = counts.failed;
     } catch (e) {
         console.error('加载任务失败:', e);
     }

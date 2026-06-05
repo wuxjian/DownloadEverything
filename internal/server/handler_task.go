@@ -95,7 +95,8 @@ func (h *AppHandler) taskEvents(c *gin.Context) {
 	c.Header("Cache-Control", "no-cache")
 	c.Header("Connection", "keep-alive")
 
-	ch := h.Manager.Subscribe()
+	ch, unsubscribe := h.Manager.Subscribe()
+	defer unsubscribe()
 
 	c.Stream(func(w io.Writer) bool {
 		select {

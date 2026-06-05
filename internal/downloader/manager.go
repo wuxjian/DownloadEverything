@@ -13,18 +13,21 @@ import (
 
 	"download-everything/internal/config"
 	dbmod "download-everything/internal/database"
+
+	"github.com/google/uuid"
 )
 
 // Manager 下载任务管理器
 type Manager struct {
-	db         *sql.DB
-	cfg        *config.Config
-	store      *dbmod.TaskStore
-	httpDL     *HTTPDownloader
-	active     map[string]context.CancelFunc
-	mu         sync.RWMutex
-	semaphore  chan struct{}
-	broadcastCh chan *ProgressEvent
+	db          *sql.DB
+	cfg         *config.Config
+	store       *dbmod.TaskStore
+	httpDL      *HTTPDownloader
+	active      map[string]context.CancelFunc
+	mu          sync.RWMutex
+	semaphore   chan struct{}
+	subscribers map[string]chan *ProgressEvent
+	subMu       sync.RWMutex
 }
 
 // ProgressEvent 进度广播事件
@@ -41,16 +44,11 @@ func NewManager(db *sql.DB, cfg *config.Config) *Manager {
 		store:       dbmod.NewTaskStore(db),
 		active:      make(map[string]context.CancelFunc),
 		semaphore:   make(chan struct{}, cfg.MaxConcurrent),
-		broadcastCh: make(chan *ProgressEvent, 100),
+		subscribers: make(map[string]chan *ProgressEvent),
 	}
 	m.httpDL = NewHTTPDownloader(cfg.ThreadsPerFile, cfg.ProxyURL, cfg.MaxRetries, cfg.RetryInterval, func(taskID string, p *Progress) {
-		// 更新数据库
 		m.store.UpdateProgress(taskID, p.Downloaded, p.Speed, p.Progress, p.Status)
-		// 广播进度
-		select {
-		case m.broadcastCh <- &ProgressEvent{TaskID: taskID, P: p}:
-		default:
-		}
+		m.broadcast(&ProgressEvent{TaskID: taskID, P: p})
 	})
 
 	// 确保下载目录存在
@@ -59,9 +57,31 @@ func NewManager(db *sql.DB, cfg *config.Config) *Manager {
 	return m
 }
 
-// Subscribe 订阅进度事件
-func (m *Manager) Subscribe() <-chan *ProgressEvent {
-	return m.broadcastCh
+// broadcast 向所有订阅者广播事件
+func (m *Manager) broadcast(event *ProgressEvent) {
+	m.subMu.RLock()
+	defer m.subMu.RUnlock()
+	for _, ch := range m.subscribers {
+		select {
+		case ch <- event:
+		default:
+		}
+	}
+}
+
+// Subscribe 订阅进度事件，返回接收 channel 和取消订阅函数
+func (m *Manager) Subscribe() (<-chan *ProgressEvent, func()) {
+	ch := make(chan *ProgressEvent, 10)
+	id := uuid.New().String()
+	m.subMu.Lock()
+	m.subscribers[id] = ch
+	m.subMu.Unlock()
+	return ch, func() {
+		m.subMu.Lock()
+		delete(m.subscribers, id)
+		close(ch)
+		m.subMu.Unlock()
+	}
 }
 
 // AddTask 添加下载任务并启动
@@ -124,9 +144,11 @@ func (m *Manager) startDownload(task *dbmod.Task) {
 		} else {
 			log.Printf("下载失败 [%s]: %v", task.Name, err)
 			m.store.UpdateStatus(task.ID, "failed", err.Error())
+			m.broadcast(&ProgressEvent{TaskID: task.ID, P: &Progress{Status: "failed"}})
 		}
 	} else {
 		m.store.UpdateStatus(task.ID, "done", "")
+		m.broadcast(&ProgressEvent{TaskID: task.ID, P: &Progress{Status: "done", Progress: 100}})
 	}
 }
 
@@ -205,10 +227,7 @@ func (m *Manager) Shutdown() {
 func (m *Manager) UpdateDownloaderConfig(cfg *config.Config) {
 	m.httpDL = NewHTTPDownloader(cfg.ThreadsPerFile, cfg.ProxyURL, cfg.MaxRetries, cfg.RetryInterval, func(taskID string, p *Progress) {
 		m.store.UpdateProgress(taskID, p.Downloaded, p.Speed, p.Progress, p.Status)
-		select {
-		case m.broadcastCh <- &ProgressEvent{TaskID: taskID, P: p}:
-		default:
-		}
+		m.broadcast(&ProgressEvent{TaskID: taskID, P: p})
 	})
 	log.Printf("[下载] 下载器配置已更新: 代理=%s, 重试=%d次, 间隔=%ds", cfg.ProxyURL, cfg.MaxRetries, cfg.RetryInterval)
 }

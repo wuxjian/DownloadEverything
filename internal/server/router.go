@@ -82,12 +82,8 @@ func NewRouter(db *sql.DB, cfg *config.Config, mgr *downloader.Manager, webFS em
 // --- 页面路由 ---
 
 func (h *AppHandler) pageIndex(c *gin.Context) {
-	counts, _ := h.Manager.CountByStatus()
-	tasks, _ := h.Manager.ListTasks()
 	h.Tmpl.ExecuteTemplate(c.Writer, "index.html", gin.H{
-		"Page":   "index",
-		"Counts": counts,
-		"Tasks":  tasks,
+		"Page": "index",
 	})
 }
 
