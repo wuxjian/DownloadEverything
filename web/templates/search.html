@@ -1,0 +1,63 @@
+{{template "head" .}}
+<div class="search-hero">
+    <h1>AI 智能搜索</h1>
+    <p>输入资源关键词，AI 自动搜索、抓取、提取下载链接</p>
+</div>
+
+<div class="search-box">
+    <form id="form-search" onsubmit="return false;">
+        <div class="input-group">
+            <input type="text" id="input-query" placeholder="搜索你想下载的资源...">
+            <button type="submit" class="btn btn-primary" id="btn-search">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                搜索
+            </button>
+        </div>
+    </form>
+</div>
+
+<div class="card" id="search-progress" style="display:none;">
+    <div class="card-header">
+        <h2>搜索进度</h2>
+        <button class="btn btn-ghost btn-sm" onclick="clearSearchUI()" title="清空搜索结果">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+            清空
+        </button>
+    </div>
+    <div class="card-body">
+        <div class="steps-timeline" id="progress-steps"></div>
+    </div>
+</div>
+
+<div class="card" id="search-results-card" style="display:none;">
+    <div class="card-header">
+        <h2>下载链接</h2>
+        <button class="btn btn-success btn-sm" id="btn-download-all" onclick="downloadAll()">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+            全部下载
+        </button>
+    </div>
+    <div class="task-list" id="results-list"></div>
+</div>
+
+<div class="card">
+    <div class="card-header">
+        <h2>手动解析 URL</h2>
+    </div>
+    <div class="card-body">
+        <p style="color:var(--text-muted); font-size:0.9rem; margin-bottom:16px;">输入一个网页 URL，AI 将解析其中的下载链接。</p>
+        <form id="form-parse-url" onsubmit="return false;">
+            <div class="input-group">
+                <input type="url" id="input-parse-url" placeholder="输入网页URL...">
+                <button type="submit" class="btn btn-ghost" id="btn-parse">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+                    解析链接
+                </button>
+            </div>
+        </form>
+        <div id="parse-results" style="display:none; margin-top:20px;">
+            <div class="task-list" id="parse-results-list" style="border: 1px solid var(--border); border-radius: var(--radius-sm);"></div>
+        </div>
+    </div>
+</div>
+{{template "foot" .}}

@@ -1,0 +1,139 @@
+{{template "head" .}}
+<div class="page-header">
+    <div>
+        <h1>下载管理</h1>
+        <p>管理所有下载任务，实时监控下载进度</p>
+    </div>
+    <button class="btn btn-ghost" onclick="openDownloadDir()">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
+        打开下载目录
+    </button>
+</div>
+
+<div class="stats-grid">
+    <div class="stat-card">
+        <div class="stat-label">
+            <div class="stat-icon blue">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+            </div>
+            下载中
+        </div>
+        <div class="stat-value" id="count-downloading">{{index .Counts "downloading"}}</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-label">
+            <div class="stat-icon green">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+            </div>
+            已完成
+        </div>
+        <div class="stat-value" id="count-done">{{index .Counts "done"}}</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-label">
+            <div class="stat-icon yellow">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>
+            </div>
+            已暂停
+        </div>
+        <div class="stat-value" id="count-paused">{{index .Counts "paused"}}</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-label">
+            <div class="stat-icon red">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
+            </div>
+            失败
+        </div>
+        <div class="stat-value" id="count-failed">{{index .Counts "failed"}}</div>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header">
+        <h2>新建下载</h2>
+    </div>
+    <div class="card-body">
+        <form id="form-new-task" onsubmit="return false;">
+            <div class="input-group">
+                <input type="url" id="input-url" placeholder="输入下载链接...">
+                <input type="text" id="input-name" placeholder="文件名（可选）" style="max-width:200px;">
+                <button type="submit" class="btn btn-primary" id="btn-add-task">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                    添加下载
+                </button>
+            </div>
+            <div style="margin-top:12px;">
+                <button type="button" class="adv-toggle" onclick="toggleAdvanced()" id="btn-toggle-adv">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+                    <span>高级选项：自定义 Header / Cookie</span>
+                </button>
+            </div>
+            <div id="advanced-options" style="display:none; margin-top:12px;">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>自定义 Headers</label>
+                        <textarea id="input-headers" rows="4" placeholder="每行一个，格式: Key: Value&#10;示例:&#10;Referer: https://example.com&#10;Authorization: Bearer token123"></textarea>
+                        <div class="hint">默认已注入 Chrome UA 等浏览器标识，此处可覆盖或添加</div>
+                    </div>
+                    <div class="form-group">
+                        <label>自定义 Cookies</label>
+                        <textarea id="input-cookies" rows="4" placeholder="每行一个，格式: name=value&#10;示例:&#10;session_id=abc123&#10;token=xyz789"></textarea>
+                        <div class="hint">用于需要登录态的下载链接</div>
+                    </div>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header">
+        <h2>下载任务</h2>
+        <button class="btn btn-ghost btn-sm" onclick="loadTasks()">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
+            刷新
+        </button>
+    </div>
+    <div class="task-list" id="task-list">
+        {{range .Tasks}}
+        <div class="task-item" data-id="{{.ID}}">
+            <div class="task-icon {{.Status}}">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+            </div>
+            <div class="task-info">
+                <div class="task-name">{{.Name}}</div>
+                <div class="task-url">{{.URL}}</div>
+            </div>
+            <div class="task-progress-wrap">
+                <div class="progress-bar"><div class="progress-fill {{.Status}}" style="width:{{printf "%.1f" .Progress}}%"></div></div>
+                <div class="task-meta">
+                    <span class="status-badge {{.Status}}"><span class="status-dot {{.Status}}"></span>{{.Status}}</span>
+                    <span>{{printf "%.1f" .Progress}}%</span>
+                </div>
+            </div>
+            <div class="task-actions">
+                {{if eq .Status "downloading"}}
+                <button class="btn btn-ghost btn-sm" onclick="pauseTask('{{.ID}}')" title="暂停">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>
+                </button>
+                {{else if eq .Status "paused"}}
+                <button class="btn btn-ghost btn-sm" onclick="resumeTask('{{.ID}}')" title="恢复">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+                </button>
+                {{end}}
+                <button class="btn btn-danger btn-sm" onclick="deleteTask('{{.ID}}')" title="删除">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+                </button>
+            </div>
+        </div>
+        {{end}}
+        {{if not .Tasks}}
+        <div class="empty-state">
+            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+            <p>暂无下载任务，添加链接开始下载</p>
+        </div>
+        {{end}}
+    </div>
+</div>
+{{template "foot" .}}

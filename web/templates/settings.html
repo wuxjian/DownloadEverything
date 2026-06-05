@@ -1,0 +1,103 @@
+{{template "head" .}}
+<div class="page-header">
+    <h1>系统设置</h1>
+    <p>配置 AI 模型、搜索引擎和下载参数</p>
+</div>
+
+<form id="form-settings" onsubmit="return false;">
+    <div class="card">
+        <div class="card-header"><h2>基础设置</h2></div>
+        <div class="card-body">
+            <div class="settings-section">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>服务端口</label>
+                        <input type="number" id="set-port" value="{{.Cfg.Port}}">
+                    </div>
+                    <div class="form-group">
+                        <label>默认下载目录</label>
+                        <input type="text" id="set-down-dir" value="{{.Cfg.DownDir}}">
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-header"><h2>AI 模型</h2></div>
+        <div class="card-body">
+            <div class="settings-section">
+                <div class="form-group">
+                    <label>API 端点</label>
+                    <input type="text" id="set-ai-endpoint" value="{{.Cfg.AIEndpoint}}" placeholder="https://api.openai.com/v1">
+                    <div class="hint">支持所有 OpenAI 兼容的 API 端点（DeepSeek、本地 Ollama 等）</div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>模型名称</label>
+                        <input type="text" id="set-ai-model" value="{{.Cfg.AIModel}}" placeholder="gpt-4o-mini">
+                    </div>
+                    <div class="form-group">
+                        <label>API Key</label>
+                        <input type="password" id="set-ai-key" value="{{.Cfg.AIKey}}" placeholder="sk-...">
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-header"><h2>搜索引擎</h2></div>
+        <div class="card-body">
+            <div class="settings-section">
+                <div class="form-group">
+                    <label>Tavily API Key</label>
+                    <input type="password" id="set-tavily-key" value="{{.Cfg.TavilyKey}}" placeholder="tvly-...">
+                    <div class="hint">在 <a href="https://tavily.com" target="_blank">tavily.com</a> 获取免费 API Key</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-header"><h2>下载参数</h2></div>
+        <div class="card-body">
+            <div class="settings-section">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>最大并发下载数</label>
+                        <input type="number" id="set-max-concurrent" value="{{.Cfg.MaxConcurrent}}" min="1" max="20">
+                    </div>
+                    <div class="form-group">
+                        <label>每文件分片线程数</label>
+                        <input type="number" id="set-threads-per-file" value="{{.Cfg.ThreadsPerFile}}" min="1" max="16">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>代理地址</label>
+                    <input type="text" id="set-proxy-url" value="{{.Cfg.ProxyURL}}" placeholder="http://127.0.0.1:7890 留空不使用">
+                    <div class="hint">支持 HTTP/SOCKS5 代理，填写后下载将通过代理进行</div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>最大重试次数</label>
+                        <input type="number" id="set-max-retries" value="{{.Cfg.MaxRetries}}" min="0" max="10">
+                    </div>
+                    <div class="form-group">
+                        <label>重试间隔（秒）</label>
+                        <input type="number" id="set-retry-interval" value="{{.Cfg.RetryInterval}}" min="1" max="120">
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div style="display:flex; align-items:center; gap:16px; margin-top:8px;">
+        <button type="submit" class="btn btn-primary" id="btn-save-settings">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+            保存设置
+        </button>
+        <span id="settings-msg" style="font-size:0.9rem;"></span>
+    </div>
+</form>
+{{template "foot" .}}
