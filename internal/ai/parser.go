@@ -63,6 +63,7 @@ func ExtractDirectLinks(htmlContent, baseURL string) []DownloadLink {
 		".mp4": true, ".mkv": true, ".avi": true, ".mov": true,
 		".mp3": true, ".flac": true, ".wav": true,
 		".pdf": true, ".doc": true, ".docx": true, ".xls": true,
+		".txt": true, ".epub": true, ".mobi": true,
 		".iso": true, ".dmg": true, ".deb": true, ".rpm": true,
 		".apk": true, ".tar": true, ".gz": true,
 	}

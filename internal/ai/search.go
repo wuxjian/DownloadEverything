@@ -183,6 +183,25 @@ func (p *SearchPipeline) Run(ctx context.Context, query string, cb StepCallback)
 		cb(4, totalSteps, fmt.Sprintf("找到 %d 个下载链接", len(links)), links)
 	}
 
+	// 补充：用 ExtractDirectLinks 直接从 HTML 中匹配文件扩展名链接，补全 AI 可能遗漏的
+	linkSet := make(map[string]bool)
+	for _, l := range links {
+		linkSet[l.URL] = true
+	}
+	var extraLinks []DownloadLink
+	for url, content := range pages {
+		directLinks := ExtractDirectLinks(content, url)
+		for _, dl := range directLinks {
+			if !linkSet[dl.URL] {
+				linkSet[dl.URL] = true
+				extraLinks = append(extraLinks, dl)
+			}
+		}
+	}
+	if len(extraLinks) > 0 {
+		links = append(links, extraLinks...)
+	}
+
 	return &PipelineResult{
 		Query:    query,
 		Links:    links,
@@ -202,6 +221,7 @@ func (p *SearchPipeline) filterResults(ctx context.Context, results []SearchResu
 			Role: "system",
 			Content: `你是一个资源搜索助手。用户搜索了某个资源，下面是搜索引擎返回的结果。
 请分析这些结果，选出最可能包含下载链接的网页URL（最多选5个）。
+注意：下载链接不限于 .exe/.zip 等二进制文件，.txt 小说、电子书、文档等文本类资源同样视为有效的下载链接。
 只返回JSON数组，格式如：["url1", "url2", ...]
 如果没有合适的结果，返回空数组 []。`,
 		},
@@ -233,10 +253,11 @@ func (p *SearchPipeline) extractLinks(ctx context.Context, pages map[string]stri
 				Role: "system",
 				Content: `你是一个资源下载链接提取助手。请从给定的网页内容中提取所有可能的下载链接。
 提取规则：
-1. 寻找直接的下载链接（.exe, .zip, .rar, .mp4, .mkv, .pdf, .mp3 等文件链接）
-2. 寻找下载按钮或下载区域的链接
-3. 寻找网盘分享链接（如百度网盘、阿里云盘、Google Drive等）
-4. 寻找磁力链接（magnet:?开头的链接）
+1. 寻找直接的下载链接（.exe, .zip, .rar, .7z, .mp4, .mkv, .pdf, .mp3, .txt, .epub, .mobi 等文件链接）
+2. 特别注意文本类资源：.txt 小说、电子书（.epub, .mobi）、文档（.pdf, .doc, .docx）等
+3. 寻找下载按钮或下载区域的链接
+4. 寻找网盘分享链接（如百度网盘、阿里云盘、Google Drive等）
+5. 寻找磁力链接（magnet:?开头的链接）
 
 返回JSON数组，格式如：
 [{"name": "文件名", "url": "下载链接", "size": "文件大小(如有)", "type": "文件类型"}]

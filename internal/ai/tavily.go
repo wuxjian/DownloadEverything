@@ -55,7 +55,7 @@ func (t *TavilyClient) Search(query string, maxResults int) (*SearchResponse, er
 		APIKey:        t.APIKey,
 		Query:         query,
 		MaxResults:    maxResults,
-		SearchDepth:   "basic",
+		SearchDepth:   "advanced",
 		IncludeAnswer: true,
 	}
 
