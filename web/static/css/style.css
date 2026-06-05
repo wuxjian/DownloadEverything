@@ -726,6 +726,40 @@ input::placeholder { color: var(--text-muted); }
 
 fieldset { border: none; padding: 0; margin: 0; }
 
+/* === Password Input Toggle === */
+.password-input-wrap {
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+.password-input-wrap input {
+    padding-right: 40px;
+}
+.password-toggle {
+    position: absolute;
+    right: 4px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: transparent;
+    border: none;
+    border-radius: 6px;
+    color: var(--text-muted);
+    cursor: pointer;
+    transition: var(--transition);
+}
+.password-toggle:hover {
+    color: var(--text-primary);
+    background: var(--bg-card-hover);
+}
+.password-toggle.visible {
+    color: var(--accent);
+}
+
 /* === Toast === */
 #toast-container {
     position: fixed;

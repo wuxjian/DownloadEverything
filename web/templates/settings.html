@@ -39,7 +39,12 @@
                     </div>
                     <div class="form-group">
                         <label>API Key</label>
-                        <input type="password" id="set-ai-key" value="{{.Cfg.AIKey}}" placeholder="sk-...">
+                        <div class="password-input-wrap">
+                            <input type="password" id="set-ai-key" value="{{.Cfg.AIKey}}" placeholder="sk-...">
+                            <button type="button" class="password-toggle" onclick="togglePasswordVisibility('set-ai-key')" title="显示/隐藏密钥">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                            </button>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -52,7 +57,12 @@
             <div class="settings-section">
                 <div class="form-group">
                     <label>Tavily API Key</label>
-                    <input type="password" id="set-tavily-key" value="{{.Cfg.TavilyKey}}" placeholder="tvly-...">
+                    <div class="password-input-wrap">
+                        <input type="password" id="set-tavily-key" value="{{.Cfg.TavilyKey}}" placeholder="tvly-...">
+                        <button type="button" class="password-toggle" onclick="togglePasswordVisibility('set-tavily-key')" title="显示/隐藏密钥">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                        </button>
+                    </div>
                     <div class="hint">在 <a href="https://tavily.com" target="_blank">tavily.com</a> 获取免费 API Key</div>
                 </div>
             </div>

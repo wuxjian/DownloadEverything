@@ -552,6 +552,19 @@ async function parseURL() {
     }
 }
 
+// ========== 密码显隐切换 ==========
+function togglePasswordVisibility(id) {
+    const input = document.getElementById(id);
+    const btn = input.parentElement.querySelector('.password-toggle');
+    if (input.type === 'password') {
+        input.type = 'text';
+        btn.classList.add('visible');
+    } else {
+        input.type = 'password';
+        btn.classList.remove('visible');
+    }
+}
+
 // ========== 设置 ==========
 async function saveSettings() {
     const settings = {
