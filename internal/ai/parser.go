@@ -50,6 +50,21 @@ func PreprocessHTML(htmlContent string) string {
 	return result.String()
 }
 
+// getNameFromURL 从链接文本和 URL 中提取最佳文件名（优先带扩展名）
+func getNameFromURL(linkText string, parsedURL *url.URL) string {
+	path := strings.TrimRight(parsedURL.Path, "/")
+	if idx := strings.LastIndex(path, "/"); idx >= 0 && idx < len(path)-1 {
+		name := path[idx+1:]
+		if name != "" {
+			return name
+		}
+	}
+	if linkText != "" {
+		return linkText
+	}
+	return parsedURL.Path
+}
+
 // ExtractDirectLinks 用goquery提取直接的下载链接（不经过AI）
 func ExtractDirectLinks(htmlContent, baseURL string) []DownloadLink {
 	doc, err := goquery.NewDocumentFromReader(strings.NewReader(htmlContent))
@@ -105,10 +120,7 @@ func ExtractDirectLinks(htmlContent, baseURL string) []DownloadLink {
 		path := strings.ToLower(parsedURL.Path)
 		for ext := range fileExts {
 			if strings.HasSuffix(path, ext) {
-				text := strings.TrimSpace(s.Text())
-				if text == "" {
-					text = parsedURL.Path
-				}
+				text := getNameFromURL(strings.TrimSpace(s.Text()), parsedURL)
 				links = append(links, DownloadLink{
 					Name: text,
 					URL:  href,
@@ -121,10 +133,7 @@ func ExtractDirectLinks(htmlContent, baseURL string) []DownloadLink {
 		// 检查是否是网盘链接
 		host := strings.ToLower(parsedURL.Host)
 		if isCloudDrive(host) {
-			text := strings.TrimSpace(s.Text())
-			if text == "" {
-				text = parsedURL.Path
-			}
+			text := getNameFromURL(strings.TrimSpace(s.Text()), parsedURL)
 			links = append(links, DownloadLink{
 				Name: text,
 				URL:  href,
@@ -136,10 +145,7 @@ func ExtractDirectLinks(htmlContent, baseURL string) []DownloadLink {
 		// 检查链接文本是否包含下载关键词
 		linkText := strings.ToLower(strings.TrimSpace(s.Text()))
 		if isDownloadKeyword(linkText) || isDownloadKeyword(strings.ToLower(href)) {
-			text := strings.TrimSpace(s.Text())
-			if text == "" {
-				text = parsedURL.Path
-			}
+			text := getNameFromURL(strings.TrimSpace(s.Text()), parsedURL)
 			links = append(links, DownloadLink{
 				Name: text,
 				URL:  href,

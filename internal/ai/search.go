@@ -270,7 +270,7 @@ func (p *SearchPipeline) filterLinksByAI(ctx context.Context, linksText string, 
 5. 链接文本或URL中包含"下载"、"txt"等关键词的链接
 
 只返回JSON数组，格式如：
-[{"name": "文件名", "url": "下载链接", "type": "文件类型"}]
+[{"name": "文件名（必须包含文件扩展名，如 file.txt）", "url": "下载链接", "type": "文件类型"}]
 如果没有可下载的链接，返回空数组 []。`,
 		},
 		{
