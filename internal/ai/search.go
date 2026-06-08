@@ -252,6 +252,20 @@ func (p *SearchPipeline) extractLinks(ctx context.Context, pages map[string]stri
 		}
 	}
 
+	// 对没有文件扩展名的链接，根据搜索关键词智能推断并补充
+	if query != "" {
+		if ext := inferExtensionFromQuery(query); ext != "" {
+			for i := range allLinks {
+				if !strings.Contains(allLinks[i].Name, ".") {
+					allLinks[i].Name += ext
+				}
+				if allLinks[i].Type == "link" || allLinks[i].Type == "" {
+					allLinks[i].Type = ext[1:]
+				}
+			}
+		}
+	}
+
 	return allLinks, nil
 }
 
@@ -270,8 +284,12 @@ func (p *SearchPipeline) filterLinksByAI(ctx context.Context, linksText string, 
 5. 链接文本或URL中包含"下载"、"txt"等关键词的链接
 
 只返回JSON数组，格式如：
-[{"name": "文件名（必须包含文件扩展名，如 file.txt）", "url": "下载链接", "type": "文件类型"}]
-如果没有可下载的链接，返回空数组 []。`,
+[{"name": "文件名", "url": "下载链接", "type": "文件类型"}]
+要求：
+	1. 文件名必须包含文件扩展名，例如：file.txt、book.pdf、software.zip
+	2. 如果链接URL没有明确的文件扩展名，根据链接文本和用户搜索关键词推断最可能的文件类型并添加到文件名
+	3. type 字段填写推断出的文件类型（不带点，如 txt、zip、pdf）
+	如果没有可下载的链接，返回空数组 []。`,
 		},
 		{
 			Role:    "user",
@@ -284,6 +302,36 @@ func (p *SearchPipeline) filterLinksByAI(ctx context.Context, linksText string, 
 		return nil, err
 	}
 	return links, nil
+}
+
+// inferExtensionFromQuery 根据搜索关键词推断可能的文件扩展名
+func inferExtensionFromQuery(query string) string {
+	q := strings.ToLower(query)
+	if strings.Contains(q, "txt") || strings.Contains(q, "小说") || strings.Contains(q, "文本") {
+		return ".txt"
+	}
+	if strings.Contains(q, "epub") || strings.Contains(q, "电子书") {
+		return ".epub"
+	}
+	if strings.Contains(q, "pdf") {
+		return ".pdf"
+	}
+	if strings.Contains(q, "zip") || strings.Contains(q, "rar") || strings.Contains(q, "压缩") {
+		return ".zip"
+	}
+	if strings.Contains(q, "mp4") || strings.Contains(q, "视频") || strings.Contains(q, "电影") || strings.Contains(q, "mkv") || strings.Contains(q, "avi") {
+		return ".mp4"
+	}
+	if strings.Contains(q, "mp3") || strings.Contains(q, "音乐") || strings.Contains(q, "音频") || strings.Contains(q, "flac") || strings.Contains(q, "wav") {
+		return ".mp3"
+	}
+	if strings.Contains(q, "exe") || strings.Contains(q, "软件") || strings.Contains(q, "安装") || strings.Contains(q, "apk") || strings.Contains(q, "程序") {
+		return ".exe"
+	}
+	if strings.Contains(q, "iso") || strings.Contains(q, "系统") || strings.Contains(q, "镜像") {
+		return ".iso"
+	}
+	return ""
 }
 
 // fetchPage 抓取网页内容
