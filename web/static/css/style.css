@@ -614,8 +614,7 @@ input::placeholder { color: var(--text-muted); }
     color: var(--accent);
     margin-bottom: 4px;
     overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
+    word-break: break-all;
 }
 .sr-snippet {
     font-size: 0.8rem;
@@ -641,8 +640,7 @@ input::placeholder { color: var(--text-muted); }
 .filtered-url-item svg { color: var(--accent); flex-shrink: 0; }
 .filtered-url-item span {
     overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
+    word-break: break-all;
 }
 
 @keyframes pulse { 0%,100% { box-shadow: 0 0 0 0 rgba(99,102,241,0.3); } 50% { box-shadow: 0 0 0 8px rgba(99,102,241,0); } }
@@ -671,8 +669,7 @@ input::placeholder { color: var(--text-muted); }
     font-size: 0.8rem;
     color: var(--text-muted);
     overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
+    word-break: break-all;
 }
 .result-meta {
     display: flex;
